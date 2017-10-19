@@ -1,0 +1,56 @@
+---
+title: "AssignmentWeek2DevelopmentDataProduct"
+---
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(leaflet))
+```
+
+This file was created by Sandro on the following date:
+
+```{r date, comment=""}
+date()
+```
+
+## Download precipitation data 
+Data were obtained from the R dataset of Annual Precipitation in US Cities.  
+The average amount of precipitation (rainfall) in inches for each of 70 United States (and Puerto Rico) cities.   
+Source: Statistical Abstracts of the United States, 1975
+References: McNeil, D. R. (1977) Interactive Data Analysis. New York: Wiley.
+```{r, precipitation R dataset}
+
+data("precip")
+cities.precip<-as.factor(names(precip))
+values<-as.data.frame(precip)
+df.precip<-cbind.data.frame(cities.precip, values)
+```
+
+## Download coordinates data 
+US cities geographic coordinates were obtained from the website www.gaslampmedia.com
+```{r,coordinates data}
+
+url<-"https://www.gaslampmedia.com/wp-content/uploads/2013/08/zip_codes_states.csv"
+
+download.file(url, destfile = "coordinates.csv", method = "curl")
+coordinates<-read.csv("coordinates.csv")
+cities<-select(coordinates, "latitude", "longitude", "city", "state")
+
+cities<-(cities)%>%group_by(city)%>%mutate(lat=median(latitude), lng=median(longitude))%>%select(city, lat, lng)%>%unique()
+    
+
+```
+
+## Matching data
+```{r,matching df}
+
+geo<-merge.data.frame(cities, df.precip, by.x = "city", by.y = "cities.precip")
+```
+
+##Plot of US cities precipitations
+```{r, warning=FALSE, message=FALSE, fig.align='center',fig.cap='US cities precipitations'}
+geo %>%
+   leaflet() %>%
+   addTiles() %>%
+   addCircles(weight = 1, radius = geo$precip * 1000, popup=geo$city)
+```
